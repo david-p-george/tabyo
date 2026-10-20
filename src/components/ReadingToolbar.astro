@@ -1,0 +1,49 @@
+---
+/**
+ * The reading toolbar: sticky under the header (and under the hero on the
+ * homepage) while the chapter text is in view, holding the prev/next chapter
+ * arrows around the shared BookPicker ("John 1 ·"). Static links + one
+ * <details> picker — fully functional without JavaScript.
+ *
+ * Pass prev=null / next=null to render a muted arrow (not a dead link).
+ */
+import BookPicker from "./BookPicker.astro";
+import { hrefChapter } from "../lib/routes.ts";
+import { getBookMeta } from "../lib/books.ts";
+
+interface Props {
+  code: string;
+  chapterNo: number;
+  prev: number | null;
+  next: number | null;
+}
+
+const { code, chapterNo, prev, next } = Astro.props;
+const bookName = getBookMeta(code)!.name;
+---
+
+<div class="reading-bar">
+  <nav class="reading-bar-inner" aria-label="Chapter navigation">
+    <div class="bar-slot bar-prev">
+      {
+        prev !== null ? (
+          <a class="bar-arrow" href={hrefChapter(code, prev)} rel="prev" aria-label="Previous chapter">←</a>
+        ) : (
+          <span class="bar-arrow bar-arrow-off" aria-hidden="true">←</span>
+        )
+      }
+    </div>
+    <div class="bar-slot bar-picker">
+      <BookPicker summary={`${bookName} ${chapterNo}`} />
+    </div>
+    <div class="bar-slot bar-next">
+      {
+        next !== null ? (
+          <a class="bar-arrow" href={hrefChapter(code, next)} rel="next" aria-label="Next chapter">→</a>
+        ) : (
+          <span class="bar-arrow bar-arrow-off" aria-hidden="true">→</span>
+        )
+      }
+    </div>
+  </nav>
+</div>

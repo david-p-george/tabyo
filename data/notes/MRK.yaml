@@ -1,0 +1,73 @@
+# Demo Greek note set — bundled example for the demo edition (Mark 1).
+# These are not real editorial decisions; replace with your own notes.
+# A worked example of both note kinds: the Greek note anchors the overridden
+# Mark 1:7 text and carries a 3-reading apparatus (including an omission);
+# the Greek one on 1:4 anchors base text, so it would survive either way.
+greek:
+  - id: mrk-1-7-ischuros
+    ref: "1:7"
+    anchor:
+      phrase: "ὁ ἰσχυρός"
+    # Exercises the optional baseReading line: the base text reads otherwise here.
+    baseReading: "ὁ ἰσχυρότερός μου"
+    rationale: |
+      ## Why the simple ἰσχυρός?
+
+      SBLGNT (with `א B L N`) reads the comparative **ὁ ἰσχυρότερός** here, the
+      Byzantine tradition the simple **ὁ ἰσχυρός**. I adopt the simple reading:
+
+      - *ἰσχυρός* is the load-bearing adjective John's preaching leans on
+        elsewhere in Mark (cf. 3:27), and the comparative forces an implied
+        comparison with someone the paragraph never names.
+      - The reading was tested in the editor's translation before it was adopted,
+        and it carried the clause better.
+
+      The apparatus below lists the evidence as I recorded it while hand-collating.
+    apparatus:
+      - reading: "ὁ ἰσχυρός"
+        witnesses: "A C D Θ 565 pc; Byz (RP)"
+        adopted: true
+      - reading: "ὁ ἰσχυρότερός (μου)"
+        witnesses: "NA28 main text; א B L"
+      - reading: ""
+        kind: omission
+        witnesses: "a few cursives; included to exercise omission rendering"
+  - id: mrk-1-7-ikanos-kypsas
+    ref: "1:7"
+    anchor:
+      phrase: "ἱκανὸς κύψας"
+    rationale: |
+      This note sits in the **base** verse (the editor's override only touches ὁ ἰσχυρός
+      earlier in the same verse), so it anchors unmodified text — proving a
+      note may live wherever I choose, not only where I corrected.
+
+      The Byzantine word-order variant is transcribed for completeness; the
+      displayed reading follows the NA28-style text I keep as base.
+    apparatus:
+      - reading: "ἱκανὸς κύψας"
+        witnesses: "NA28-style text; א B C L"
+        adopted: true
+      - reading: "ἱκανόν"
+        witnesses: "565; some cursives"
+
+english:
+  - id: mrk-1-4-baptizer
+    ref: "1:4"
+    anchor:
+      phrase: "Baptizer"
+    rationale: |
+      My rendering **Baptizer** follows the Greek participle ὁ βαπτίζων
+      (MK 1:4) where the BSB base reads *Baptist*. The participle names John
+      by what he does — he is the one who baptizes — and *Baptizer* keeps that
+      agency visible instead of flattening his name into a transliterated title.
+
+      This shows a **Markdown** rationale with *styling* and a `code` span.
+  - id: mrk-1-4-wilderness
+    ref: "1:4"
+    anchor:
+      phrase: "in the wilderness"
+    rationale: |
+      The phrase *in the wilderness* is kept deliberately bare: other English
+      versions gloss it "by the Jordan" (BSB footnote), but the wilderness is
+      the theological location — the place of Israel's testing — so the note
+      argues the plainer rendering should stay.

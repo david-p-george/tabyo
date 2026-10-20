@@ -1,0 +1,22 @@
+# Attribution/licence for each base source. Keyed by the `source` slug used in
+# data/base/<lang>/<BOOK>/<chapter>.json. Ship real texts here — the /sources/
+# page renders from this file.
+
+sources:
+  sblgnt:
+    name: "SBL Greek New Testament"
+    licence: "Creative Commons Attribution 4.0 International Public License (CC BY 4.0)"
+    attribution: >-
+      The SBL Greek New Testament, copyright 2010 by the Society of Biblical
+      Literature and Logos Bible Software. Licensed under CC BY 4.0
+      (https://creativecommons.org/licenses/by/4.0/). Modifications: this
+      edition presents the text with readings adapted by the editor, as
+      annotated throughout.
+  bsb:
+    name: "Berean Standard Bible"
+    licence: "Public domain"
+    attribution: >-
+      The Holy Bible, Berean Standard Bible, produced in cooperation with Bible
+      Hub, Discovery Bible, OpenBible.com, and the Berean Bible Translation
+      Committee; dedicated to the public domain
+      (https://berean.bible).

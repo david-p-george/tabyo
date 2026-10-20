@@ -1,0 +1,26 @@
+{
+  "name": "tabyo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "validate": "node scripts/validate.ts",
+    "make-layout": "node scripts/make-layout.ts",
+    "ingest-sblgnt": "node scripts/ingest-sblgnt.ts",
+    "ingest-bsb": "node scripts/ingest-bsb.ts",
+    "dev": "astro dev",
+    "build": "node scripts/validate.ts && astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "astro": "^5.14.0",
+    "marked": "^18.1.1",
+    "yaml": "^2.8.0",
+    "zod": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0"
+  }
+}

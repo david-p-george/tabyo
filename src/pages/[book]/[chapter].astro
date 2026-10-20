@@ -1,0 +1,35 @@
+---
+/**
+ * /<book>/<chapter>/ — the chapter page: a sticky reading toolbar (prev/next
+ * arrows + book/chapter picker) above the chapter body (row grid +
+ * end-of-chapter notes), which it shares verbatim with the homepage's default
+ * chapter. Deep links: #v4 / #g-4 / #e-4 (rows/verses), #note-ID (notes).
+ */
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import ReadingToolbar from "../../components/ReadingToolbar.astro";
+import ChapterBody from "../../components/ChapterBody.astro";
+import { bookSlug, codeFromSlug, hrefChapter } from "../../lib/routes.ts";
+import { listBooksWithData, getBook } from "../../lib/data.ts";
+
+export async function getStaticPaths() {
+  const books = await listBooksWithData();
+  return books.flatMap((b) =>
+    b.chapters.map((chapter) => ({ params: { book: bookSlug(b.meta.code), chapter: String(chapter) } }))
+  );
+}
+
+const { book, chapter } = Astro.params;
+const code = codeFromSlug(book ?? "");
+if (!code) throw new Error(`No USFM book code for slug "${book}"`);
+const chapterNo = Number(chapter);
+
+const overview = await getBook(code);
+const idx = overview.chapters.indexOf(chapterNo);
+const prev = idx > 0 ? overview.chapters[idx - 1] : null;
+const next = idx >= 0 && idx < overview.chapters.length - 1 ? overview.chapters[idx + 1] : null;
+---
+
+<BaseLayout title={`${overview.meta.name} ${chapterNo} — tabyo`} canonical={hrefChapter(code, chapterNo)} picker={false}>
+  <ReadingToolbar code={code} chapterNo={chapterNo} prev={prev} next={next} />
+  <ChapterBody code={code} chapterNo={chapterNo} heading="h1" />
+</BaseLayout>

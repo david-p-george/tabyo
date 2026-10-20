@@ -1,0 +1,64 @@
+---
+/**
+ * THE book/chapter picker (`<details class="jump">`): rendered by the reading
+ * toolbar (summary = current "John 1") and by the header on static pages
+ * (summary = "Jump to…"). Books are padded rows in a generous serif; chapters
+ * a roomy grid, bible.com-style. Static HTML — works without JavaScript.
+ *
+ * Props:
+ * - summary: text for the closed state (defaults to "Jump to…").
+ */
+import { listBooksWithData } from "../lib/data.ts";
+import { bookSlug, hrefBook, hrefChapter } from "../lib/routes.ts";
+
+interface Props {
+  summary?: string;
+}
+
+const { summary = "Jump to…" } = Astro.props;
+const books = await listBooksWithData();
+/* Current page path without the deploy base (trailing slash kept), so
+   aria-current works under sub-path deploys too. */
+const page = Astro.url.pathname.slice(
+  (import.meta.env.BASE_URL || "/").replace(/\/+$/, "").length
+);
+const coverage = (b: (typeof books)[number]) =>
+  b.chapters.length === b.meta.chapters
+    ? `${b.chapters.length} chapters`
+    : `${b.chapters.length} of ${b.meta.chapters}`;
+---
+
+<details class="jump">
+  <summary aria-haspopup="true">{summary}</summary>
+  <nav class="jump-menu" aria-label="Book and chapter navigation">
+    {
+      books.map((b) => {
+        const slug = `/${bookSlug(b.meta.code)}/`;
+        return (
+          <div class="jump-book-group">
+            <a
+              class="jump-book"
+              href={hrefBook(b.meta.code)}
+              aria-current={page.startsWith(slug) ? "page" : undefined}
+            >
+              <span class="jump-book-name">{b.meta.name}</span>
+              <span class="jump-book-count">{coverage(b)}</span>
+            </a>
+            <ul class="jump-chapters">
+              {b.chapters.map((n) => {
+                const href = hrefChapter(b.meta.code, n);
+                return (
+                  <li>
+                    <a href={href} aria-current={page === href ? "page" : undefined}>
+                      {n}
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        );
+      })
+    }
+  </nav>
+</details>

@@ -1,0 +1,27 @@
+---
+/**  /<book>/  — chapter list for one book. */
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { listBooksWithData } from "../../lib/data.ts";
+import { bookSlug, hrefBook } from "../../lib/routes.ts";
+
+export function getStaticPaths() {
+  return listBooksWithData().then((books) => books.map((b) => ({ params: { book: bookSlug(b.meta.code) } })));
+}
+
+const { book } = Astro.params;
+const overview = (await listBooksWithData()).find((b) => bookSlug(b.meta.code) === book);
+if (!overview) throw new Error(`No data-backed book for slug "${book}"`);
+---
+
+<BaseLayout title={`${overview.meta.name} — tabyo`}>
+  <h1>{overview.meta.name}</h1>
+  <p class="muted">{overview.chapters.length} of {overview.meta.chapters} chapters on disk.</p>
+
+  <ul class="chapter-list">
+    {overview.chapters.map((n) => (
+      <li>
+        <a href={`${hrefBook(overview.meta.code)}${n}/`}>{n}</a>
+      </li>
+    ))}
+  </ul>
+</BaseLayout>

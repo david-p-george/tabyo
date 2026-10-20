@@ -1,0 +1,47 @@
+---
+/**
+ * Markdown static pages: every file in src/pages-md/*.md is a route at
+ * /<filename> via this rest route (e.g. philosophy.md → /philosophy).
+ * Frontmatter: title (required; falls back to the slug), description
+ * (optional meta description). The shared layout is PageLayout.
+ */
+import { readdir, readFile } from "node:fs/promises";
+import path from "node:path";
+import { marked } from "marked";
+import { parse as parseYaml } from "yaml";
+import PageLayout from "../layouts/PageLayout.astro";
+import { MD_PAGES_DIR } from "../lib/pages.ts";
+
+export async function getStaticPaths() {
+  let names: string[] = [];
+  try {
+    names = await readdir(MD_PAGES_DIR);
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") {
+      console.warn(`[tabyo] md pages: ${MD_PAGES_DIR} not found — no static pages emitted`);
+      names = [];
+    } else {
+      throw err;
+    }
+  }
+  return names
+    .filter((n) => n.endsWith(".md"))
+    .map((n) => ({ params: { slug: n.slice(0, -3) } }));
+}
+
+const { slug } = Astro.params;
+const file = path.join(MD_PAGES_DIR, `${slug}.md`);
+if (!file.startsWith(MD_PAGES_DIR + path.sep)) throw new Error(`bad md page slug "${slug}"`);
+const raw = await readFile(file, "utf8");
+
+const fmMatch = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/.exec(raw);
+const fm = fmMatch ? (parseYaml(fmMatch[1]) as Record<string, unknown>) : {};
+const body = fmMatch ? raw.slice(fmMatch[0].length) : raw;
+const html = marked.parse(body, { async: false }) as string;
+const title = typeof fm.title === "string" ? fm.title : (slug ?? "page");
+const description = typeof fm.description === "string" ? fm.description : undefined;
+---
+
+<PageLayout title={`${title} — tabyo`} description={description}>
+  <article class="page-body" set:html={html} />
+</PageLayout>

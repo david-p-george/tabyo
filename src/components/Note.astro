@@ -1,0 +1,52 @@
+---
+/**
+ * The complete presentation of one note: Greek notes get a mini-apparatus
+ * table (readings × witnesses, adopted reading marked) followed by the
+ * Markdown rationale; English notes get the rationale only. Living in the
+ * chapter's `.chapter-notes` list, this same markup serves three masters: the
+ * popover/bottom-sheet content (reader.js clones it), the no-JS end-of-chapter
+ * note list, and the print endnotes. A later-stage UI can style/animate this
+ * container without touching the data.
+ */
+import { marked } from "marked";
+import type { GreekNoteData, EnglishNoteData } from "../schemas.ts";
+
+interface Props {
+  note: GreekNoteData | EnglishNoteData;
+  kind: "greek" | "english";
+  /** Optional chapter-wide order label shared with the text's print marks. */
+  label?: string;
+}
+
+const { note, kind, label } = Astro.props;
+const rationale = marked.parse(note.rationale) as string;
+---
+
+<div class="note" id={`note-${note.id}`} data-note-id={note.id} data-kind={kind} data-ref={note.ref}>
+  <p class="note-title">
+    {label && <span class="print-ref" aria-hidden="true">{label}</span>}
+    {" "}verse {note.ref}
+  </p>
+  {
+    kind === "greek" && "baseReading" in note && note.baseReading !== undefined && (
+      <p class="base-reading">SBLGNT reads: <bdi lang="grc">{note.baseReading}</bdi></p>
+    )
+  }
+  {
+    kind === "greek" && (
+      <table class="apparatus">
+        <caption>Apparatus</caption>
+        <tbody>
+          {note.apparatus.map((r) => (
+            <tr class={r.adopted ? "adopted" : undefined}>
+              <th scope="row">{r.kind === "omission" ? <span class="omission">[omission]</span> : r.reading}</th>
+              <td class="witnesses">{r.witnesses}</td>
+              <td class="flag">{r.adopted ? <span class="adopted-flag">✱</span> : null}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )
+  }
+  <div class="rationale" set:html={rationale} />
+</div>

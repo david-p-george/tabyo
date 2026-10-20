@@ -1,0 +1,46 @@
+---
+/**
+ * / — the homepage: a short hero, then the reading toolbar, then the default
+ * book + chapter (src/config.ts `site.home`, currently John 1) beneath it.
+ * The canonical points at that chapter's own URL so crawlers consolidate /
+ * with /<book>/<chapter>/ while readers landing here get real text at once.
+ * Every internal link still targets canonical chapter routes; / is an entry
+ * point, never a destination. (The old book index lives on in the picker and
+ * the header nav.)
+ */
+import BaseLayout from "../layouts/BaseLayout.astro";
+import ReadingToolbar from "../components/ReadingToolbar.astro";
+import ChapterBody from "../components/ChapterBody.astro";
+import { site } from "../config.ts";
+import { getBook } from "../lib/data.ts";
+import { hrefChapter } from "../lib/routes.ts";
+
+const home = site.home;
+const overview = await getBook(home.book);
+const bookName = overview.meta.name;
+/* Guarded lookup: quietly clamp to an existing chapter if config drifts off. */
+const defaultChapter = overview.chapters.includes(home.chapter)
+  ? home.chapter
+  : (overview.chapters[0] ?? 1);
+
+const idx = overview.chapters.indexOf(defaultChapter);
+const prev = idx > 0 ? overview.chapters[idx - 1] : null;
+const next = idx >= 0 && idx < overview.chapters.length - 1 ? overview.chapters[idx + 1] : null;
+---
+
+<BaseLayout
+  title={`${site.title} — ${bookName} ${defaultChapter}`}
+  canonical={hrefChapter(home.book, defaultChapter)}
+  description={`${bookName} ${defaultChapter} — ${site.description}`}
+  picker={false}
+>
+  <section class="hero">
+    <h1 class="hero-title">
+      <a href={hrefChapter(home.book, defaultChapter)}>{site.title}</a>
+    </h1>
+    <p class="hero-sub">{bookName} {defaultChapter} — reading now. Choose a book &amp; chapter with the picker below.</p>
+  </section>
+
+  <ReadingToolbar code={home.book} chapterNo={defaultChapter} prev={prev} next={next} />
+  <ChapterBody code={home.book} chapterNo={defaultChapter} heading={null} />
+</BaseLayout>

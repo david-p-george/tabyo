@@ -1,0 +1,212 @@
+---
+/**
+ * Base layout: head/meta, header chrome (site name, static-page nav, optional
+ * "Jump to…" picker, "Aa" reader settings), main slot, and the site
+ * footer (linking to Sources). The inline pre-paint script applies saved
+ * reader settings before first paint (defaults from src/config.ts via
+ * define:vars); public/js/reader.js owns all interaction afterwards.
+ */
+import { ClientRouter } from "astro:transitions";
+import "../styles/site.css";
+import { site, readerDefaults } from "../config.ts";
+import { getAttribution } from "../lib/data.ts";
+import { hrefRoot, withBase, basePath } from "../lib/routes.ts";
+import { listStaticPages } from "../lib/pages.ts";
+import BookPicker from "../components/BookPicker.astro";
+
+interface Props {
+  title: string;
+  description?: string;
+  /** Canonical path for this page ("/john/1/"); defaults to the page's own URL. */
+  canonical?: string;
+  /**
+   * Show the header's "Jump to…" picker. The homepage and chapter pages leave
+   * it off: their sticky reading toolbar owns the picker (and its pill is the
+   * chapter indicator). Static pages (philosophy, sources, …) keep it.
+   */
+  picker?: boolean;
+}
+
+const { title, description, canonical, picker = true } = Astro.props;
+const desc = description ?? site.description;
+const attribution = await getAttribution();
+const staticPages = await listStaticPages();
+/* Page path with the deploy base stripped, so aria-current works under a
+   sub-path deploys (GitHub Pages) as well as at a domain root. */
+const page = Astro.url.pathname.slice(basePath.length) || "/";
+/* Canonical URL: page-specific when a page says so (homepage → /<book>/<n>/),
+   otherwise the page's own path; made absolute with the configured origin. */
+const hinted = canonical ?? (page.endsWith("/") ? page : `${page}/`);
+const canonicalUrl = new URL(withBase(hinted), site.url).href;
+
+const highlightStyles = ["underline", "dotted", "tint", "dot", "none"] as const;
+const onOff = ["on", "off"] as const;
+/** Reader behaviour script lives in public/js/; keep it base-aware. */
+const readerScriptUrl = `${basePath}/js/reader.js`.replace(/\/{2,}/g, "/");
+---
+
+<!doctype html>
+<html
+  lang="en"
+  data-theme="light"
+  data-font-size={readerDefaults.fontSize}
+  data-hl-greek={readerDefaults.highlightGreek}
+  data-hl-english={readerDefaults.highlightEnglish}
+  data-highlights={readerDefaults.highlights}
+  data-mute-untouched={readerDefaults.muteUntouched}
+>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <link rel="canonical" href={canonicalUrl} />
+    <meta name="description" content={desc} />
+    <meta name="generator" content={Astro.generator} />
+    <meta name="color-scheme" content="light dark" />
+    <ClientRouter />
+    <script is:inline define:vars={{ readerDefaults }}>
+      // The defaults for reader.js (settings reset etc.) ride along here.
+      window.__TABYO__ = { defaults: readerDefaults };
+      // Pre-paint: apply saved reader settings before first paint (defaults
+      // are already on <html> as data attributes; this only overrides them).
+      (() => {
+        const d = document.documentElement;
+        const dataKey = (camel) =>
+          ({
+            highlightGreek: "hlGreek",
+            highlightEnglish: "hlEnglish",
+            highlights: "highlights",
+            muteUntouched: "muteUntouched",
+            fontSize: "fontSize",
+          })[camel];
+        try {
+          const raw = JSON.parse(localStorage.getItem("tabyo-reader") || "{}");
+          for (const k of ["highlightGreek", "highlightEnglish", "highlights", "muteUntouched", "fontSize"]) {
+            if (raw[k] != null && dataKey(k)) d.dataset[dataKey(k)] = raw[k];
+          }
+        } catch (_e) {
+          /* no/corrupt storage: the config defaults above apply */
+        }
+        d.dataset.theme = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        d.classList.add("js");
+      })();
+    </script>
+    <script is:inline src={readerScriptUrl} defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-head">
+      <div class="head-bar">
+        <a class="site-name" href={hrefRoot()}>tabyo</a>
+        <ul class="site-nav" aria-label="Pages">
+          {
+            staticPages.map((p) => (
+              <li>
+                <a href={withBase(`/${p.slug}/`)} aria-current={page === `/${p.slug}/` ? "page" : undefined}>
+                  {p.title}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+        <div class="head-tools">
+          {picker && <BookPicker />}
+          <details id="settings" class="settings-wrap">
+            <summary class="tool-btn" aria-haspopup="true">Aa</summary>
+            <div class="settings-menu" aria-label="Reader settings">
+              <fieldset>
+                <legend>Greek highlights</legend>
+                <div class="group">
+                  {
+                    highlightStyles.map((v) => (
+                      <button type="button" class="set" data-setting="highlightGreek" data-value={v}>
+                        {v}
+                      </button>
+                    ))
+                  }
+                </div>
+              </fieldset>
+              <fieldset>
+                <legend>English highlights</legend>
+                <div class="group">
+                  {
+                    highlightStyles.map((v) => (
+                      <button type="button" class="set" data-setting="highlightEnglish" data-value={v}>
+                        {v}
+                      </button>
+                    ))
+                  }
+                </div>
+              </fieldset>
+              <fieldset>
+                <legend>Notes</legend>
+                <div class="setting-row">
+                  <span class="row-label">Show highlights</span>
+                  <div class="group">
+                    {
+                      onOff.map((v) => (
+                        <button type="button" class="set" data-setting="highlights" data-value={v}>
+                          {v}
+                        </button>
+                      ))
+                    }
+                  </div>
+                </div>
+                <div class="setting-row">
+                  <span class="row-label">Mute untouched verses</span>
+                  <div class="group">
+                    {
+                      onOff.map((v) => (
+                        <button type="button" class="set" data-setting="muteUntouched" data-value={v}>
+                          {v}
+                        </button>
+                      ))
+                    }
+                  </div>
+                </div>
+              </fieldset>
+              <fieldset>
+                <legend>Text size</legend>
+                <div class="group">
+                  {
+                    ["s", "m", "l"].map((v) => (
+                      <button type="button" class="set size-btn" data-setting="fontSize" data-value={v}>
+                        {v.toUpperCase()}
+                      </button>
+                    ))
+                  }
+                </div>
+              </fieldset>
+              <div class="settings-foot">
+                <button type="button" id="settings-reset">Reset to defaults</button>
+              </div>
+            </div>
+          </details>
+        </div>
+      </div>
+    </header>
+
+    <main id="main">
+      <slot />
+    </main>
+
+    <footer class="site-foot">
+      <div class="foot-inner">
+        <span>tabyo — your Greek text beside your English translation</span>
+        <span>
+          <a href={withBase("/sources/")}>Sources</a>
+          {
+            attribution && Object.keys(attribution.sources).length > 0 && (
+              <>
+                {" · "}
+                {Object.values(attribution.sources)
+                  .map((s) => s.name)
+                  .join(" · ")}
+              </>
+            )
+          }
+        </span>
+      </div>
+    </footer>
+  </body>
+</html>

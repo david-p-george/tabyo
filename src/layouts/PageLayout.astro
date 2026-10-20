@@ -1,0 +1,21 @@
+---
+/**
+ * Shared layout for markdown static pages. Wraps BaseLayout and renders the
+ * page body inside a comfortable reading measure. Every markdown page under
+ * src/pages-md/ goes through this, via src/pages/[...slug].astro.
+ */
+import BaseLayout from "./BaseLayout.astro";
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description } = Astro.props;
+---
+
+<BaseLayout title={title} description={description}>
+  <article class="page-body">
+    <slot />
+  </article>
+</BaseLayout>

@@ -1,0 +1,25 @@
+---
+/**
+ * One verse: small inline verse number plus the verse text, with anchored
+ * spans wrapped in <mark data-kind data-note tabindex="0"> by markVerseHtml.
+ * The span carries the deep-link ids g-4 / e-4 and the data-overridden flag.
+ */
+import { markVerseHtml, type AnchorMark } from "../lib/render.ts";
+import type { VerseUnit } from "../lib/data.ts";
+
+interface Props {
+  unit: VerseUnit;
+  kind: "greek" | "english";
+  marks: AnchorMark[];
+}
+
+const { unit, kind, marks } = Astro.props;
+const id = `${kind === "greek" ? "g" : "e"}-${unit.verse}`;
+const html = markVerseHtml(unit.text, marks, kind);
+---
+
+<span class="verse" id={id} lang={kind === "greek" ? "grc" : "en"} data-overridden={String(unit.overridden)}>
+  <span class="vn" aria-hidden="true">{unit.verse}</span>
+  {" "}
+  <Fragment set:html={html} />
+</span>

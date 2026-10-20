@@ -1,0 +1,49 @@
+# Deploy to GitHub Pages (optional alt host). Cloudflare Pages is the primary
+# host and needs only its own "Pages" build settings — see README "Deployment".
+#
+# This workflow is manual-run only (workflow_dispatch) so it can never surprise
+# you. It publishes under the repo sub-path /<repo>/ by setting PUBLIC_BASE.
+name: Deploy to GitHub Pages
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      # Base path = the repo path on github.io; run the build with it set.
+      # (See README: only matters for project pages — with a custom domain or
+      # a <user>.github.io repo, drop PUBLIC_BASE.)
+      - name: Build
+        run: npm run build
+        env:
+          PUBLIC_BASE: /${{ github.event.repository.name }}
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

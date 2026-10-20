@@ -1,0 +1,39 @@
+---
+/**
+ * /sources/ — attribution and licences for the base texts, generated from
+ * data/attribution.yaml. Included in the site nav like a markdown page, and
+ * linked from the footer of every page.
+ */
+import PageLayout from "../layouts/PageLayout.astro";
+import { marked } from "marked";
+import { getAttribution } from "../lib/data.ts";
+
+const attribution = await getAttribution();
+const sources = Object.entries(attribution.sources);
+---
+
+<PageLayout title="Sources — tabyo">
+  <h1>Sources</h1>
+  <p>
+    The text presented here is the editor's. The <dfn>base text</dfn> each
+    column starts from, and its licence, are listed below.
+  </p>
+  {
+    sources.length === 0 && (
+      <p class="muted">No sources recorded yet — data/attribution.yaml is empty.</p>
+    )
+  }
+  <dl class="sources-list">
+    {
+      sources.map(([slug, s]) => (
+        <div class="source-entry">
+          <dt>{s.name}</dt>
+          <dd>
+            <p>{marked.parseInline(s.attribution)}</p>
+            <p class="muted">{s.licence}</p>
+          </dd>
+        </div>
+      ))
+    }
+  </dl>
+</PageLayout>

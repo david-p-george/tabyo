@@ -1,0 +1,127 @@
+---
+/**
+ * The complete body of one chapter, as both reading surfaces render it:
+ * the row grid (Greek left, English right), then the end-of-chapter note
+ * list. Owns all note-anchoring and print-reference computation, so the
+ * chapter page and the homepage (`/` → default chapter) can never drift.
+ *
+ * Props: code (USFM), chapterNo; heading = null | "h1" — "h1" renders an
+ * sr-only h1 (chapter pages, for outline/SEO); null renders none (homepage,
+ * where the hero h1 + picker pill carry the context).
+ */
+import Verse from "./Verse.astro";
+import Note from "./Note.astro";
+import { getChapter, getNotes, loadLayout, getBook } from "../lib/data.ts";
+import { buildRows, locateNoteAnchors, type AnchorMark, type AnyNote } from "../lib/render.ts";
+import type { GreekNoteData, EnglishNoteData } from "../schemas.ts";
+
+interface Props {
+  code: string;
+  chapterNo: number;
+  heading?: "h1" | null;
+}
+
+const { code, chapterNo, heading = "h1" } = Astro.props;
+
+const overview = await getBook(code);
+const merged = await getChapter(code, chapterNo);
+const layout = await loadLayout(code);
+/* The loader keys chapters as strings; the param arrives as a string too. */
+const rows = buildRows(merged, layout?.chapters[String(chapterNo)] ?? null);
+
+/* Notes for this chapter: group per side+verse, then locate the anchor spans
+   in the final merged verse text (build fails loudly on a bad anchor). */
+const notes = await getNotes(code);
+const chPrefix = `${chapterNo}:`;
+const chapterNotes: Record<"greek" | "english", GreekNoteData[] | EnglishNoteData[]> = {
+  greek: notes.greek.filter((n) => n.ref.startsWith(chPrefix)),
+  english: notes.english.filter((n) => n.ref.startsWith(chPrefix)),
+};
+
+const marks: Record<"greek" | "english", Map<number, AnchorMark[]>> = {
+  greek: new Map(),
+  english: new Map(),
+};
+const byVerse: Record<"greek" | "english", Map<number, AnyNote[]>> = {
+  greek: new Map(),
+  english: new Map(),
+};
+for (const lang of ["greek", "english"] as const) {
+  for (const note of chapterNotes[lang]) {
+    const verse = Number(note.ref.slice(note.ref.indexOf(":") + 1));
+    if (!byVerse[lang].has(verse)) byVerse[lang].set(verse, []);
+    byVerse[lang].get(verse)!.push(note);
+  }
+  for (const [verse, verseNotes] of byVerse[lang]) {
+    const unit = merged[lang].verses.find((u) => u.verse === verse);
+    if (!unit) {
+      throw new Error(`${code} ${chapterNo}:${verse} (${lang}): note anchored in a verse with no merged text`);
+    }
+    marks[lang].set(verse, locateNoteAnchors(code, chapterNo, lang, unit.text, verseNotes));
+  }
+}
+
+/**
+ * End-of-chapter note list, in text order (by verse, Greek before English —
+ * side-by-side columns make "text order" approximated by row order anyway).
+ * Each note's index there (1, 2, …) is shared with its mark in the text as an
+ * invisible superscript that only print reveals, so the printed page reads
+ * with footnote numbers and matching endnotes.
+ */
+const orderedNotes = [
+  ...chapterNotes.greek.map((note) => ({ note, kind: "greek" as const })),
+  ...chapterNotes.english.map((note) => ({ note, kind: "english" as const })),
+].sort((a, b) => verseOf(a) - verseOf(b))
+ .map((item, i) => ({ ...item, label: String(i + 1) }));
+function verseOf(item: { note: GreekNoteData | EnglishNoteData }): number {
+  return Number(item.note.ref.slice(item.note.ref.indexOf(":") + 1));
+}
+const labelOf = new Map(orderedNotes.map(({ note, label }) => [note.id, label]));
+for (const map of [marks.greek, marks.english]) {
+  for (const list of map.values()) {
+    for (const mark of list) mark.label = labelOf.get(mark.noteId);
+  }
+}
+---
+
+{
+  /* No visible heading: the reading toolbar's picker pill ("John 1") IS the
+     indicator now. Keep an sr-only h1 on chapter pages for outline/SEO. */
+  heading === "h1" && <h1 class="sr-only">{overview.meta.name} {chapterNo}</h1>
+}
+
+<section class="chapter" aria-label={`${overview.meta.name} ${chapterNo} text`}>
+  {
+    rows.map((row) => (
+      <div class="row" id={`v${row.firstVerse}`}>
+        {row.heading && <h2 class="row-heading">{row.heading}</h2>}
+        <div class="cell greek" lang="grc">
+          {row.greek ? (
+            row.greek.verses.map((u) => <Verse unit={u} kind="greek" marks={marks.greek.get(u.verse) ?? []} />)
+          ) : (
+            <span class="cell-empty" aria-hidden="true">—</span>
+          )}
+        </div>
+        <div class="cell english">
+          {row.english ? (
+            row.english.verses.map((u) => <Verse unit={u} kind="english" marks={marks.english.get(u.verse) ?? []} />)
+          ) : (
+            <span class="cell-empty" aria-hidden="true">—</span>
+          )}
+        </div>
+      </div>
+    ))
+  }
+</section>
+
+{/*
+  End-of-chapter notes: hidden by scripts (reader.js clones the content into
+  popovers), readable without JS in place, printed as endnotes either way.
+  <div class="note"> carries data-note-id / data-kind / data-ref for the
+  popover UI; ids stay unique because every note is rendered exactly once.
+*/}
+<section id="notes" class="chapter-notes" aria-label="Notes on this chapter">
+  <h2>Notes</h2>
+  {orderedNotes.length === 0 && <p class="no-notes">No notes on this chapter.</p>}
+  {orderedNotes.map(({ note, kind, label }) => <Note note={note} kind={kind} label={label} />)}
+</section>
